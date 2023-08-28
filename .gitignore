@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+ckpt/
+detectron2/
+pixel-nerf/
+output/real/
+venv/
+input/

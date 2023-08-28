@@ -1,0 +1,14 @@
+expname = nmr
+ckptdir = ckpt
+ckpt_path = ckpt/nmr_500000.pth
+data_path = ../data_root/NMR_Dataset  # NMR 데이터셋 중 하나
+outdir = output/NMR
+img_hw = [64, 64]
+chunk_size = 2048 # Increase this if you have large GPU memory
+mlp_block_num = 6
+white_bkgd = True
+im_feat_dim = 512
+skip = 1
+source_view_list = "viewlist/src_dvr.txt"
+multicat = True
+data_range = [0, 200] # Change this to render more data

@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+ckpt/
+detectron2/
+input/
+pixel-nerf/

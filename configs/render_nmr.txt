@@ -1,8 +1,15 @@
 expname = nmr
+<<<<<<< HEAD
 ckptdir = [path to ckpt dir]
 ckpt_path = [path to ckpt dir]/[ckpt name]
 data_path = [path to nmr data]
 outdir = [path to output]
+=======
+ckptdir = ckpt
+ckpt_path = ckpt/nmr_500000.pth
+data_path = ../data_root/NMR_Dataset  # NMR 데이터셋 중 하나
+outdir = output/NMR
+>>>>>>> backup
 img_hw = [64, 64]
 chunk_size = 2048 # Increase this if you have large GPU memory
 mlp_block_num = 6

@@ -1,7 +1,13 @@
 expname = nmr
+<<<<<<< HEAD
 logdir = [path to log dir]
 ckptdir = [path to ckpt dir]
 data_path = [path to nmr data]
+=======
+logdir = log
+ckptdir = ckpt
+data_path = ../data_root/NMR_Dataset/02691156
+>>>>>>> backup
 img_hw = [64, 64]
 N_rand = 512
 batch_size = 1

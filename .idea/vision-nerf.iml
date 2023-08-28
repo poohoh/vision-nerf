@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/ckpt" />
+      <excludeFolder url="file://$MODULE_DIR$/detectron2/build" />
+      <excludeFolder url="file://$MODULE_DIR$/detectron2/detectron2.egg-info" />
+      <excludeFolder url="file://$MODULE_DIR$/detectron2/detectron2/model_zoo/configs" />
+      <excludeFolder url="file://$MODULE_DIR$/input" />
+      <excludeFolder url="file://$MODULE_DIR$/output" />
+      <excludeFolder url="file://$MODULE_DIR$/pixel-nerf/checkpoints" />
+      <excludeFolder url="file://$MODULE_DIR$/pixel-nerf/eval/checkpoints" />
+      <excludeFolder url="file://$MODULE_DIR$/pixel-nerf/eval/visuals" />
+      <excludeFolder url="file://$MODULE_DIR$/pixel-nerf/visuals" />
+      <excludeFolder url="file://$MODULE_DIR$/venv" />
+    </content>
+    <orderEntry type="jdk" jdkName="Python 3.9 (vision-nerf) (2)" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+  <component name="PyDocumentationSettings">
+    <option name="format" value="PLAIN" />
+    <option name="myDocStringFormat" value="Plain" />
+  </component>
+</module>

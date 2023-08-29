@@ -2,7 +2,34 @@ __pycache__/
 *.pyc
 ckpt/
 detectron2/
-pixel-nerf/
 output/real/
 venv/
 input/
+
+# Editors
+pixel-nerf/.vscode/
+pixel-nerf/.idea/
+
+# Vagrant
+pixel-nerf/.vagrant/
+
+# Mac/OSX
+pixel-nerf/.DS_Store
+
+# Windows
+pixel-nerf/Thumbs.db
+
+# Source for the following rules: https://raw.githubusercontent.com/github/gitignore/master/Python.gitignore
+# Byte-compiled / optimized / DLL files
+pixel-nerf/__pycache__/
+pixel-nerf/*.py[cod]
+pixel-nerf/*$py.class
+pixel-nerf/*.swp
+
+# custom
+pixel-nerf/checkpoints/
+pixel-nerf/visuals/
+pixel-nerf/logs/
+
+# preprocessing input, output
+pixel-nerf/input/

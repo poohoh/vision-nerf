@@ -33,3 +33,7 @@ pixel-nerf/logs/
 
 # preprocessing input, output
 pixel-nerf/input/
+
+# blur input, output
+blur/input/
+blur/resize/

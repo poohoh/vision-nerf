@@ -260,7 +260,9 @@ if __name__ == "__main__":
         cnt, _ = cv2.findContours(mask_main, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # 첫 번째 마스크에서 contour를 찾음
         # 여러 개의 contour 중에서 가장 긴 것 추출
         cnt_length = [len(contour) for contour in cnt]
-        longest_cnt = cnt[cnt_length.index(max(cnt_length))]
+        max_index = cnt_length.index(max(cnt_length))
+        longest_cnt = cnt[max_index]
+        print('contour number:', len(cnt), ', logest contour shape:', longest_cnt.shape, 'longest contour index:', max_index)
 
         # mask의 contour 그리기
         main_contour = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
@@ -279,36 +281,38 @@ if __name__ == "__main__":
             cv2.circle(imgvis, (int(cen_pt[0]), int(cen_pt[1])), 7, (255, 255, 255), -1)  # 중심점 그리기
             imgvis = cv2.ellipse(imgvis, ellipse, (255, 0, 0), 2)
             cv2.imwrite(os.path.join(OUTPUT_DIR, 'vs.png'), imgvis)
-            print(len(cnt), cnt[0].shape)
-            print(cen_pt, min_ax)
+
+            print('ellipse center point:', cen_pt, ', min_ax:', min_ax)  # 타원 중심점 출력
         except Exception as ex:
-            print('cv2.fitEllipse error: ', ex)
+            print('cv2.fitEllipse error:', ex)
             continue
 
 
-        # mask로부터 bounding box 찾기
-        rows = np.any(mask_main, axis=1)
-        cols = np.any(mask_main, axis=0)
-        rnz = np.where(rows)[0]
-        cnz = np.where(cols)[0]
-        if len(rnz) == 0:
-            cmin = rmin = 0
-            cmax = mask_main.shape[-1]
-            rmax = mask_main.shape[-2]
-        else:
-            rmin, rmax = rnz[[0, -1]]
-            cmin, cmax = cnz[[0, -1]]
-        rcen = int(round((rmin + rmax) * 0.5))
-        ccen = int(round((cmin + cmax) * 0.5))
-        rad = int(ceil(min(cmax - cmin, rmax - rmin) * args.scale * 0.5))
+        # # mask로부터 bounding box 찾기
+        # rows = np.any(mask_main, axis=1)
+        # cols = np.any(mask_main, axis=0)
+        # rnz = np.where(rows)[0]
+        # cnz = np.where(cols)[0]
+        # if len(rnz) == 0:
+        #     cmin = rmin = 0
+        #     cmax = mask_main.shape[-1]
+        #     rmax = mask_main.shape[-2]
+        # else:
+        #     rmin, rmax = rnz[[0, -1]]
+        #     cmin, cmax = cnz[[0, -1]]
+        # rcen = int(round((rmin + rmax) * 0.5))
+        # ccen = int(round((cmin + cmax) * 0.5))
+        # rad = int(ceil(min(cmax - cmin, rmax - rmin) * args.scale * 0.5))
 
-        # mask에 bounding box 그리기
-        img_bbox = cv2.cvtColor(mask_main, cv2.COLOR_GRAY2BGR)
-        cv2.rectangle(img_bbox, (cmin, rmin), (cmax, rmax), (0, 255, 0), 2)
-        cv2.circle(img_bbox, (ccen, rcen), 7, (0, 0, 255), -1)  # 중심점 그리기
-        cv2.imwrite(os.path.join(OUTPUT_DIR, 'mask_bbox.png'), img_bbox)
+        # # mask에 bounding box 그리기
+        # img_bbox = cv2.cvtColor(mask_main, cv2.COLOR_GRAY2BGR)
+        # cv2.rectangle(img_bbox, (cmin, rmin), (cmax, rmax), (0, 255, 0), 2)
+        # cv2.circle(img_bbox, (ccen, rcen), 7, (0, 0, 255), -1)  # 중심점 그리기
+        # cv2.imwrite(os.path.join(OUTPUT_DIR, 'mask_bbox.png'), img_bbox)
+        # print('bbox center: (', ccen, rcen, ')')  # bbox 중심 좌표 출력
+        
 
-
+        # 물체 중심을 기준으로 잘라내기
         ccen, rcen = map(int, map(round, cen_pt))  # 타원의 중심점의 좌표를 정수로 변환
         rad = max(min_ax * args.scale, max_ax * args.major_scale) * 0.5  # 타원의 반지름을 계산
         rad = int(ceil(rad))  # 반지름을 올림해서 정수로 변환

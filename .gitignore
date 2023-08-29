@@ -2,12 +2,7 @@ __pycache__/
 *.pyc
 ckpt/
 detectron2/
-<<<<<<< HEAD
-input/
-pixel-nerf/
-=======
 pixel-nerf/
 output/real/
 venv/
 input/
->>>>>>> backup

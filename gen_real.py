@@ -6,10 +6,8 @@ import tqdm
 import imageio
 import numpy as np
 import torch
-<<<<<<< HEAD
-=======
-import re
->>>>>>> backup
+
+
 from torch.utils.data import Dataset
 import torch.nn.functional as F
 import torchvision.transforms as T
@@ -114,10 +112,9 @@ class RealRenderDataset(Dataset):
         print("Loading real dataset", self.base_path)
         assert os.path.exists(self.base_path)
 
-<<<<<<< HEAD
-=======
+
         # glob.glob(): 사용자가 제시한 조건에 맞는 파일명을 리스트 형식으로 반환
->>>>>>> backup
+
         self.rgb_paths = sorted(glob.glob(os.path.join(self.base_path, "*_normalize.jpg"))) + \
             sorted(glob.glob(os.path.join(self.base_path, "*_normalize.png")))
         self.poses = []
@@ -237,15 +234,12 @@ def gen_video(args):
         args.data_index = [x for x in range(len(dataset))]
 
     for d_idx in args.data_index:
-<<<<<<< HEAD
-        out_folder = os.path.join(args.outdir, args.expname, f'{d_idx:06d}')
-=======
         sample = dataset[d_idx]
 
         # out_folder = os.path.join(args.outdir, args.expname, f'{sample["rgb_path"][6:18]}') # 입력 이름[:12], [0:7] 값은 'input\'
         # out_folder = os.path.join(args.outdir, args.expname, re.split('_|\\\\|/', sample["rgb_path"])[1])
         out_folder = os.path.join(args.outdir, args.expname, os.path.split(os.path.splitext(sample["rgb_path"])[0])[1][:-10])
->>>>>>> backup
+
         print(f'Rendering {dataset[d_idx]["rgb_path"][:-15]}')
         print(f'videos will be saved to {out_folder}')
         os.makedirs(out_folder, exist_ok=True)
@@ -262,11 +256,7 @@ def gen_video(args):
             if not os.path.isfile(f):
                 shutil.copy(args.config, f)
 
-<<<<<<< HEAD
-        sample = dataset[d_idx]
-=======
 
->>>>>>> backup
         pose_index = 0
         data_input = dict(
             rgb_path=sample['rgb_path'],
@@ -334,11 +324,9 @@ def gen_video(args):
                 torch.cuda.empty_cache()
 
             imgs = np.stack(imgs, 0)
-<<<<<<< HEAD
-            imageio.mimsave(os.path.join(out_folder, f'output.gif'), imgs, fps=12)
-=======
+
             imageio.mimsave(os.path.join(out_folder, f'output.gif'), imgs, duration=1000/12)
->>>>>>> backup
+
 if __name__ == '__main__':
     parser = config_parser()
     args = parser.parse_args()

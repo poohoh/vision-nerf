@@ -258,6 +258,9 @@ if __name__ == "__main__":
         # mask is (H, W, 1) with values{0, 255}
 
         cnt, _ = cv2.findContours(mask_main, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # 첫 번째 마스크에서 contour를 찾음
+        # 여러 개의 contour 중에서 가장 긴 것 추출
+        cnt_length = [len(contour) for contour in cnt]
+        longest_cnt = cnt[cnt_length.index(max(cnt_length))]
 
         # mask의 contour 그리기
         main_contour = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
@@ -265,7 +268,7 @@ if __name__ == "__main__":
         cv2.imwrite(os.path.join(OUTPUT_DIR, 'main_contour.png'), main_contour)
         try:
 
-            ellipse = cv2.fitEllipse(cnt[0])  # 찾아낸 contour에 타원을 적합시킴
+            ellipse = cv2.fitEllipse(longest_cnt)  # 찾아낸 contour에 타원을 적합시킴
 
             cen_pt = ellipse[0]  # 타원의 중심점 추출
             min_ax, max_ax = min(ellipse[1]), max(ellipse[1])  # 타원의 주축 길이 추출

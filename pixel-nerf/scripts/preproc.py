@@ -240,52 +240,101 @@ if __name__ == "__main__":
         if len(masks) == 0:
             print("WARNING: PointRend detected no objects in", image_path, "skipping")
             continue
-        mask_main = masks[0]
-        assert mask_main.shape[:2] == im.shape[:2]
-        assert mask_main.shape[-1] == 1
-        assert mask_main.dtype == "uint8"
+        # mask_main = masks[0]
+        # assert mask_main.shape[:2] == im.shape[:2]
+        # assert mask_main.shape[-1] == 1
+        # assert mask_main.dtype == "uint8"
+
+        # 가장 가까운 차량 마스크를 사용할 포인트 위치
+        POINT_INTEREST = (int(im.shape[1] / 2), int(im.shape[0] / 2))  # (x, y) -> (width, height)
+        
+        # 지정 포인트와 각 물체 중심 간의 거리
+        distances = []
+        MAX_DISTANCE = 1000000
 
         # 마스크, masked 저장
         for idx in range(len(masks)):
             mask = masks[idx]
             cv2.imwrite(os.path.join(OUTPUT_DIR, f"{img_no_ext}_mask_{idx}.jpg"), mask)
 
+            # 원본 이미지에 masking 적용한 이미지 생성 후 저장
             mask_flt_temp = mask.astype(np.float32) / 255.0
             masked = im.astype(np.float32) * mask_flt_temp + 255 * (1.0 - mask_flt_temp)
             masked = masked.astype(np.uint8)
             cv2.imwrite(os.path.join(OUTPUT_DIR, f"{img_no_ext}_masked_{idx}.jpg"), masked)
 
+            # 마스크에서 contour를 추출
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            # 가장 긴 contour 추출
+            contour_len = [len(contour) for contour in contours]
+            max_index = contour_len.index(max(contour_len))
+            longest_contour = contours[max_index]
+            
+            try:
+                ellipse = cv2.fitEllipse(longest_contour)  # 찾아낸 contour에 타원을 적합시킴
+
+                cen_pt = ellipse[0]  # 타원의 중심점 추출
+                min_ax, max_ax = min(ellipse[1]), max(ellipse[1])  # 타원의 주축 길이
+                
+                # contour와 타원 그리기
+                img_vis = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
+                cv2.drawContours(img_vis, contours, -1, (0, 255, 0), 3)
+                cv2.circle(img_vis, (int(cen_pt[0]), int(cen_pt[1])), 7, (255, 255, 255), -1)  # 중심점 그리기
+                img_vis = cv2.ellipse(img_vis, ellipse, (255, 0, 0), 2)
+                cv2.imwrite(os.path.join(OUTPUT_DIR, f'img_vis_{idx}.png'), img_vis)
+
+                print('ellipse center point:', cen_pt, ', min_ax:', min_ax)  # 타원 중심점 출력
+
+                # 각 물체의 중심과 지정 포인트와의 거리 계산
+                distance = np.linalg.norm(np.asarray(POINT_INTEREST) - np.asarray(cen_pt))
+                distances.append(distance)
+            except Exception as ex:
+                print('cv2.fitEllipse error:', ex)
+                distances.append(MAX_DISTANCE)
+                continue
+
+        
+        # 지정 포인트와 중심 거리가 가장 가까운 물체를 main mask로 지정
+        min_index = distances.index(min(distances))
+        mask_main = masks[min_index]
+        assert mask_main.shape[:2] == im.shape[:2]
+        assert mask_main.shape[-1] == 1
+        assert mask_main.dtype == "uint8"
+
+        print(f'main mask: masks[{min_index}]')
+
         # mask is (H, W, 1) with values{0, 255}
 
-        cnt, _ = cv2.findContours(mask_main, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # 첫 번째 마스크에서 contour를 찾음
-        # 여러 개의 contour 중에서 가장 긴 것 추출
-        cnt_length = [len(contour) for contour in cnt]
-        max_index = cnt_length.index(max(cnt_length))
-        longest_cnt = cnt[max_index]
-        print('contour number:', len(cnt), ', logest contour shape:', longest_cnt.shape, 'longest contour index:', max_index)
-
-        # mask의 contour 그리기
-        main_contour = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
-        cv2.drawContours(main_contour, cnt, -1, (0, 255, 0), 3)
-        cv2.imwrite(os.path.join(OUTPUT_DIR, 'main_contour.png'), main_contour)
-        try:
-
-            ellipse = cv2.fitEllipse(longest_cnt)  # 찾아낸 contour에 타원을 적합시킴
-
-            cen_pt = ellipse[0]  # 타원의 중심점 추출
-            min_ax, max_ax = min(ellipse[1]), max(ellipse[1])  # 타원의 주축 길이 추출
-            
-            # contour와 타원 그리기
-            imgvis = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
-            cv2.drawContours(imgvis, cnt, -1, (0, 255, 0), 3)
-            cv2.circle(imgvis, (int(cen_pt[0]), int(cen_pt[1])), 7, (255, 255, 255), -1)  # 중심점 그리기
-            imgvis = cv2.ellipse(imgvis, ellipse, (255, 0, 0), 2)
-            cv2.imwrite(os.path.join(OUTPUT_DIR, 'vs.png'), imgvis)
-
-            print('ellipse center point:', cen_pt, ', min_ax:', min_ax)  # 타원 중심점 출력
-        except Exception as ex:
-            print('cv2.fitEllipse error:', ex)
-            continue
+        # cnt, _ = cv2.findContours(mask_main, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # 첫 번째 마스크에서 contour를 찾음
+        # # 여러 개의 contour 중에서 가장 긴 것 추출
+        # cnt_length = [len(contour) for contour in cnt]
+        # max_index = cnt_length.index(max(cnt_length))
+        # longest_cnt = cnt[max_index]
+        # print('contour number:', len(cnt), ', longest contour shape:', longest_cnt.shape, 'longest contour index:', max_index)
+        #
+        # # mask의 contour 그리기
+        # main_contour = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
+        # cv2.drawContours(main_contour, cnt, -1, (0, 255, 0), 3)
+        # cv2.imwrite(os.path.join(OUTPUT_DIR, 'main_contour.png'), main_contour)
+        # try:
+        #
+        #     ellipse = cv2.fitEllipse(longest_cnt)  # 찾아낸 contour에 타원을 적합시킴
+        #
+        #     cen_pt = ellipse[0]  # 타원의 중심점 추출
+        #     min_ax, max_ax = min(ellipse[1]), max(ellipse[1])  # 타원의 주축 길이 추출
+        #
+        #     # contour와 타원 그리기
+        #     imgvis = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
+        #     cv2.drawContours(imgvis, cnt, -1, (0, 255, 0), 3)
+        #     cv2.circle(imgvis, (int(cen_pt[0]), int(cen_pt[1])), 7, (255, 255, 255), -1)  # 중심점 그리기
+        #     imgvis = cv2.ellipse(imgvis, ellipse, (255, 0, 0), 2)
+        #     cv2.imwrite(os.path.join(OUTPUT_DIR, 'vs.png'), imgvis)
+        #
+        #     print('ellipse center point:', cen_pt, ', min_ax:', min_ax)  # 타원 중심점 출력
+        # except Exception as ex:
+        #     print('cv2.fitEllipse error:', ex)
+        #     continue
 
 
         # # mask로부터 bounding box 찾기

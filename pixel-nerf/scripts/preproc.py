@@ -260,9 +260,11 @@ if __name__ == "__main__":
         # 가장 가까운 차량 마스크를 사용할 포인트 위치
         POINT_INTEREST = (int(im.shape[1] / 2), int(im.shape[0] / 2))  # (x, y) -> (width, height)
         
-        # 지정 포인트와 각 물체 중심 간의 거리
-        distances = []
+        # 각 클래스의 attritube
         MAX_DISTANCE = 1000000
+        distances = []  # 지정 포인트와 각 물체 중심 간의 거리
+        cen_points = []  # center points
+        axis = []  # min_axis, max_axis
 
         # 마스크, masked 저장
         for idx in range(len(masks)):
@@ -298,9 +300,11 @@ if __name__ == "__main__":
 
                 print('ellipse center point:', cen_pt, ', min_ax:', min_ax)  # 타원 중심점 출력
 
-                # 각 물체의 중심과 지정 포인트와의 거리 계산
+                # 각 attribute 저장
                 distance = np.linalg.norm(np.asarray(POINT_INTEREST) - np.asarray(cen_pt))
                 distances.append(distance)
+                cen_points.append(cen_pt)
+                axis.append([min_ax, max_ax])
             except Exception as ex:
                 print('cv2.fitEllipse error:', ex)
                 distances.append(MAX_DISTANCE)
@@ -315,6 +319,12 @@ if __name__ == "__main__":
         assert mask_main.dtype == "uint8"
 
         print(f'main mask: masks[{min_index}]')
+
+        # 해당 마스크의 attribute 추출
+        cen_pt = cen_points[min_index]
+        min_ax, max_ax = axis[min_index]
+
+        print(f'main mask - cen_pt: ({cen_pt[0]}, {cen_pt[1]}), min_ax: {min_ax}, max_ax: {max_ax}')
 
         # mask is (H, W, 1) with values{0, 255}
 
@@ -372,6 +382,7 @@ if __name__ == "__main__":
         # cv2.imwrite(os.path.join(OUTPUT_DIR, 'mask_bbox.png'), img_bbox)
         # print('bbox center: (', ccen, rcen, ')')  # bbox 중심 좌표 출력
         
+
 
         # 물체 중심을 기준으로 잘라내기
         ccen, rcen = map(int, map(round, cen_pt))  # 타원의 중심점의 좌표를 정수로 변환

@@ -141,9 +141,21 @@ class PointRendWrapper:
         """
         outputs = self.predictor(im)
 
-        insts = outputs["instances"]
-        if self.filter_class != -1:
-            insts = insts[insts.pred_classes == self.filter_class]  # 0 is person
+        insts = outputs["instances"]  # 이미지에서 객체에 해당하는 것들
+        # if self.filter_class != -1:
+        #     insts = insts[insts.pred_classes == self.filter_class]  # 0 is person
+        
+        # 2,5,7에 해당하는 클래스들의 마스크 추출
+        CLASSES = [2, 5, 7]
+        self.filter_classes = CLASSES
+        mask = torch.zeros_like(insts.pred_classes, dtype=torch.bool)
+        for cls in self.filter_classes:
+            mask |= (insts.pred_classes == cls)
+        insts = insts[mask]
+
+        class_ids = insts.pred_classes.tolist()
+        print("class IDs:", class_ids)
+        
         if visualize:
             v = Visualizer(
                 im[:, :, ::-1],

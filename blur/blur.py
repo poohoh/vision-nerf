@@ -6,12 +6,12 @@ import tqdm
 
 input_images = glob.glob("./input/*.png")
 
-mean_size = 5
+mean_size = 3
 
-gaussian_size = 7
-gaussian_sigma = 2
+gaussian_size = 3
+gaussian_sigma = 1
 
-d = 10
+d = 7
 sigmaColor = 100
 sigmaSpace = 100
 
@@ -30,13 +30,13 @@ for image_path in tqdm.tqdm(input_images):
     im = cv2.imread(image_path)
 
     mean_blur = cv2.blur(im, (mean_size, mean_size))
-    cv2.imwrite(f'./{mean_dir}/{image_name}.png', mean_blur)
+    cv2.imwrite(f'./{mean_dir}/mean_{image_name}.png', mean_blur)
 
     gaussian_blur = cv2.GaussianBlur(im, (gaussian_size, gaussian_size), gaussian_sigma)
-    cv2.imwrite(f'./{gaussian_dir}/{image_name}.png', gaussian_blur)
+    cv2.imwrite(f'./{gaussian_dir}/gaussian_{image_name}.png', gaussian_blur)
 
     bilateral_blur = cv2.bilateralFilter(im, 10, sigmaColor, sigmaSpace)
-    cv2.imwrite(f'./{bilateral_dir}/{image_name}.png', bilateral_blur)
+    cv2.imwrite(f'./{bilateral_dir}/bilateral_{image_name}.png', bilateral_blur)
 
 
 

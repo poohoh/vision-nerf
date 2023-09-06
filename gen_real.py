@@ -46,7 +46,7 @@ def config_parser():
     parser.add_argument('--no_reload', action='store_true',
                         help='do not reload weights from saved ckpt (not used)')
     parser.add_argument('--distributed', action='store_true', help='if use distributed training (not used)')
-    parser.add_argument('--num_frames', type=int, default=40, help='how frames to render')
+    parser.add_argument('--num_frames', type=int, default=20, help='how frames to render')
     parser.add_argument("--elevation", type=float, default=0.0, help="elevation angle (negative is above)")
 
     ########## model options ##########

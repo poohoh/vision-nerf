@@ -71,8 +71,15 @@ def _crop_image(img, rect, const_border=False, value=0):
     """
     Image cropping helper
     """
+    
+    """
+        잘라내려는 영역이 이미지 크기를 벗어나면 확장하는 함수
+        rad > ccen 이면 그만큼 확장
+    """
+    
     x, y, w, h = rect
 
+    # rect_main = [ccen - rad, rcen - rad, 2 * rad, 2 * rad]
     left = abs(x) if x < 0 else 0
     top = abs(y) if y < 0 else 0
     right = abs(img.shape[1] - (x + w)) if x + w >= img.shape[1] else 0
@@ -91,7 +98,7 @@ def _crop_image(img, rect, const_border=False, value=0):
     if len(new_img.shape) == 2:
         new_img = new_img[..., None]  # 차원 추가
 
-    x = x + left
+    x = x + left  # 음수(ccen < rad)이면 0, 양수(ccen > rad)이면 그대로
     y = y + top
 
     return new_img[y : (y + h), x : (x + w), :]
@@ -244,6 +251,9 @@ if __name__ == "__main__":
         print(image_path)
         im = cv2.imread(image_path)
 
+        # blurring
+        im = cv2.bilateralFilter(im, 7, 100, 100)
+
         # 확장자를 제거한 이미지 파일 이름
         img_no_ext = os.path.split(os.path.splitext(image_path)[0])[1]
 
@@ -290,6 +300,7 @@ if __name__ == "__main__":
 
                 cen_pt = ellipse[0]  # 타원의 중심점 추출
                 min_ax, max_ax = min(ellipse[1]), max(ellipse[1])  # 타원의 주축 길이
+                print(f'max_ax: {max_ax}, min_ax: {min_ax}, max_ax / 128: {max_ax/128}')
                 
                 # contour와 타원 그리기
                 img_vis = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
@@ -383,10 +394,12 @@ if __name__ == "__main__":
         # print('bbox center: (', ccen, rcen, ')')  # bbox 중심 좌표 출력
         
 
+        rate = 0.6
 
         # 물체 중심을 기준으로 잘라내기
         ccen, rcen = map(int, map(round, cen_pt))  # 타원의 중심점의 좌표를 정수로 변환
-        rad = max(min_ax * args.scale, max_ax * args.major_scale) * 0.5  # 타원의 반지름을 계산
+        # rad = max(min_ax * args.scale, max_ax * args.major_scale) * 0.5  # 타원의 반지름을 계산
+        rad = max_ax * rate
         rad = int(ceil(rad))  # 반지름을 올림해서 정수로 변환
         rect_main = [ccen - rad, rcen - rad, 2 * rad, 2 * rad]  # 이미지를 잘라낼 영역의 좌표 계산
 
@@ -397,7 +410,7 @@ if __name__ == "__main__":
         masked_crop = im_crop.astype(np.float32) * mask_flt + 255 * (1.0 - mask_flt)  # 잘라낸 이미지에 마스크를 적용
         masked_crop = masked_crop.astype(np.uint8)  # 결과 이미지 데이터 타입을 uint8로 변환
 
-
+        cv2.imwrite(os.path.join(OUTPUT_DIR, f'masked_crop.png'), masked_crop)
 
         # im_crop = cv2.resize(im_crop, (args.size, args.size), interpolation=cv2.INTER_LINEAR)
         # mask_crop = cv2.resize(
@@ -415,7 +428,7 @@ if __name__ == "__main__":
         #                             img_no_ext + ".jpg")
         # out_mask_path = os.path.join(INPUT_DIR,
         #                               img_no_ext + "_mask.png")
-        out_masked_path = os.path.join(OUTPUT_DIR, img_no_ext + "_normalize.png")
+        out_masked_path = os.path.join(OUTPUT_DIR, f'{rate}_{img_no_ext}_normalize.png')
 
         # cv2.imwrite(out_im_path, im_crop)
         # cv2.imwrite(out_mask_path, mask_crop)

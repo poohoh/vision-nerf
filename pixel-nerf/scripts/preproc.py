@@ -267,7 +267,7 @@ if __name__ == "__main__":
         # assert mask_main.shape[-1] == 1
         # assert mask_main.dtype == "uint8"
 
-        # 가장 가까운 차량 마스크를 사용할 포인트 위치
+        # 가장 가까운 차량 마스크를 사용할 point 위치 지정
         POINT_INTEREST = (int(im.shape[1] / 2), int(im.shape[0] / 2))  # (x, y) -> (width, height)
         
         # 각 클래스의 attritube
@@ -301,6 +301,12 @@ if __name__ == "__main__":
                 cen_pt = ellipse[0]  # 타원의 중심점 추출
                 min_ax, max_ax = min(ellipse[1]), max(ellipse[1])  # 타원의 주축 길이
                 print(f'max_ax: {max_ax}, min_ax: {min_ax}, max_ax / 128: {max_ax/128}')
+
+                # 각 mask의 모든 contour 그리기
+                for i in range(len(contours)):
+                    img_contour = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
+                    cv2.drawContours(img_contour, contours[i], -1, (0, 255, 0), 3)
+                    cv2.imwrite(os.path.join(OUTPUT_DIR, f'img_contour_{i}_mask_{idx}.png'), img_contour)
                 
                 # contour와 타원 그리기
                 img_vis = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
@@ -394,12 +400,12 @@ if __name__ == "__main__":
         # print('bbox center: (', ccen, rcen, ')')  # bbox 중심 좌표 출력
         
 
-        rate = 0.6
+        rate = 'origin'
 
         # 물체 중심을 기준으로 잘라내기
         ccen, rcen = map(int, map(round, cen_pt))  # 타원의 중심점의 좌표를 정수로 변환
-        # rad = max(min_ax * args.scale, max_ax * args.major_scale) * 0.5  # 타원의 반지름을 계산
-        rad = max_ax * rate
+        rad = max(min_ax * args.scale, max_ax * args.major_scale) * 0.5  # 타원의 반지름을 계산
+        # rad = max_ax * rate
         rad = int(ceil(rad))  # 반지름을 올림해서 정수로 변환
         rect_main = [ccen - rad, rcen - rad, 2 * rad, 2 * rad]  # 이미지를 잘라낼 영역의 좌표 계산
 

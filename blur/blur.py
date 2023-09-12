@@ -11,7 +11,7 @@ mean_size = 3
 gaussian_size = 3
 gaussian_sigma = 1
 
-d = 7
+d = 3
 sigmaColor = 100
 sigmaSpace = 100
 

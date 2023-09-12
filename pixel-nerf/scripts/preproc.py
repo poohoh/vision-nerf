@@ -151,9 +151,8 @@ class PointRendWrapper:
         insts = outputs["instances"]  # 이미지에서 객체에 해당하는 것들
         # if self.filter_class != -1:
         #     insts = insts[insts.pred_classes == self.filter_class]  # 0 is person
-        
-        # 2,5,7에 해당하는 클래스들의 마스크 추출
-        CLASSES = [2, 5, 7]
+
+        CLASSES = [2, 5, 7]  # 2,5,7에 해당하는 클래스들의 마스크 추출
         self.filter_classes = CLASSES
         mask = torch.zeros_like(insts.pred_classes, dtype=torch.bool)
         for cls in self.filter_classes:
@@ -252,7 +251,8 @@ if __name__ == "__main__":
         im = cv2.imread(image_path)
 
         # blurring
-        im = cv2.bilateralFilter(im, 7, 100, 100)
+        # im = cv2.blur(im, (3, 3))  # mean blur
+        im = cv2.bilateralFilter(im, 3, 100, 100)  # bilateral blur
 
         # 확장자를 제거한 이미지 파일 이름
         img_no_ext = os.path.split(os.path.splitext(image_path)[0])[1]
@@ -272,14 +272,24 @@ if __name__ == "__main__":
         
         # 각 클래스의 attritube
         MAX_DISTANCE = 1000000
-        distances = []  # 지정 포인트와 각 물체 중심 간의 거리
-        cen_points = []  # center points
-        axis = []  # min_axis, max_axis
+        distances = [MAX_DISTANCE for _ in range(len(masks))]  # 지정 포인트와 각 물체 중심 간의 거리
+        cen_points = [(0, 0) for _ in range(len(masks))]  # center points
+        axis = [(0, 0) for _ in range(len(masks))]  # min_axis, max_axis
 
         # 마스크, masked 저장
         for idx in range(len(masks)):
             mask = masks[idx]
             cv2.imwrite(os.path.join(OUTPUT_DIR, f"{img_no_ext}_mask_{idx}.jpg"), mask)
+
+            # morphology
+            se = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+            mask = cv2.erode(mask, se)
+            cv2.imwrite(os.path.join(OUTPUT_DIR, f'{img_no_ext}_erode_mask_{idx}.png'), mask)
+            mask = cv2.dilate(mask, se)
+            cv2.imwrite(os.path.join(OUTPUT_DIR, f'{img_no_ext}_opening_mask_{idx}.png'), mask)
+            mask = mask.reshape(mask.shape[0], mask.shape[1], 1)
+
+            masks[idx] = mask
 
             # 원본 이미지에 masking 적용한 이미지 생성 후 저장
             mask_flt_temp = mask.astype(np.float32) / 255.0
@@ -289,12 +299,15 @@ if __name__ == "__main__":
 
             # 마스크에서 contour를 추출
             contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            
+
+            if not contours:
+                continue
+
             # 가장 긴 contour 추출
             contour_len = [len(contour) for contour in contours]
             max_index = contour_len.index(max(contour_len))
             longest_contour = contours[max_index]
-            
+
             try:
                 ellipse = cv2.fitEllipse(longest_contour)  # 찾아낸 contour에 타원을 적합시킴
 
@@ -302,12 +315,12 @@ if __name__ == "__main__":
                 min_ax, max_ax = min(ellipse[1]), max(ellipse[1])  # 타원의 주축 길이
                 print(f'max_ax: {max_ax}, min_ax: {min_ax}, max_ax / 128: {max_ax/128}')
 
-                # 각 mask의 모든 contour 그리기
-                for i in range(len(contours)):
-                    img_contour = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
-                    cv2.drawContours(img_contour, contours[i], -1, (0, 255, 0), 3)
-                    cv2.imwrite(os.path.join(OUTPUT_DIR, f'img_contour_{i}_mask_{idx}.png'), img_contour)
-                
+                # # 각 mask의 모든 contour 그리기
+                # for i in range(len(contours)):
+                #     img_contour = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
+                #     cv2.drawContours(img_contour, contours[i], -1, (0, 255, 0), 3)
+                #     cv2.imwrite(os.path.join(OUTPUT_DIR, f'img_contour_{i}_mask_{idx}.png'), img_contour)
+
                 # contour와 타원 그리기
                 img_vis = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
                 cv2.drawContours(img_vis, contours, -1, (0, 255, 0), 3)
@@ -319,12 +332,12 @@ if __name__ == "__main__":
 
                 # 각 attribute 저장
                 distance = np.linalg.norm(np.asarray(POINT_INTEREST) - np.asarray(cen_pt))
-                distances.append(distance)
-                cen_points.append(cen_pt)
-                axis.append([min_ax, max_ax])
+                distances[idx] = distance
+                cen_points[idx] = cen_pt
+                axis[idx] = (min_ax, max_ax)
             except Exception as ex:
                 print('cv2.fitEllipse error:', ex)
-                distances.append(MAX_DISTANCE)
+                distances[idx] = MAX_DISTANCE
                 continue
 
         
@@ -334,6 +347,8 @@ if __name__ == "__main__":
         assert mask_main.shape[:2] == im.shape[:2]
         assert mask_main.shape[-1] == 1
         assert mask_main.dtype == "uint8"
+
+        print('distances:', distances)
 
         print(f'main mask: masks[{min_index}]')
 
@@ -398,14 +413,14 @@ if __name__ == "__main__":
         # cv2.circle(img_bbox, (ccen, rcen), 7, (0, 0, 255), -1)  # 중심점 그리기
         # cv2.imwrite(os.path.join(OUTPUT_DIR, 'mask_bbox.png'), img_bbox)
         # print('bbox center: (', ccen, rcen, ')')  # bbox 중심 좌표 출력
-        
 
-        rate = 'origin'
+
+        rate = 0.6  # rate를 설정하거나 origin으로 설정할 때에는 아래 코드 주석 바꾸기
 
         # 물체 중심을 기준으로 잘라내기
         ccen, rcen = map(int, map(round, cen_pt))  # 타원의 중심점의 좌표를 정수로 변환
-        rad = max(min_ax * args.scale, max_ax * args.major_scale) * 0.5  # 타원의 반지름을 계산
-        # rad = max_ax * rate
+        # rad = max(min_ax * args.scale, max_ax * args.major_scale) * 0.5  # 타원의 긴 축, 짧은 축을 통해 이미지 반지름 크기 계산
+        rad = max_ax * rate
         rad = int(ceil(rad))  # 반지름을 올림해서 정수로 변환
         rect_main = [ccen - rad, rcen - rad, 2 * rad, 2 * rad]  # 이미지를 잘라낼 영역의 좌표 계산
 

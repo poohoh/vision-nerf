@@ -325,7 +325,12 @@ def gen_video(args):
 
             imgs = np.stack(imgs, 0)
 
-            imageio.mimsave(os.path.join(out_folder, f'output.gif'), imgs, duration=1000/6)
+            gif_config = {
+                'loop': 0,
+                'duration': 1000/6,
+            }
+
+            imageio.mimsave(os.path.join(out_folder, f'output.gif'), imgs, **gif_config)
 
 if __name__ == '__main__':
     parser = config_parser()

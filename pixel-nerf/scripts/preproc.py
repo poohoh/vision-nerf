@@ -137,7 +137,7 @@ class PointRendWrapper:
         )
         self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # set threshold for this model
         # Use a model from PointRend model zoo: https://github.com/facebookresearch/detectron2/tree/master/projects/PointRend#pretrained-models
-        self.cfg.MODEL.WEIGHTS = "checkpoints/model_final_edd263.pkl"
+        self.cfg.MODEL.WEIGHTS = "C:/Users/KimJunha/workspace/vision-nerf/pixel-nerf/checkpoints/model_final_edd263.pkl"
         self.predictor = DefaultPredictor(self.cfg)  # 간단한 end-to-end predictor 리턴
 
     def segment(self, im, out_name="", visualize=False):
@@ -232,6 +232,12 @@ if __name__ == "__main__":
         action="store_true",
         help="constant white border instead of replicate pad",
     )
+    parser.add_argument(
+        "--rate",
+        type=float,
+        default=None,
+        help="calculate radius using this rate"
+    )
     args = parser.parse_args()
 
     pointrend = PointRendWrapper(args.coco_class)
@@ -268,8 +274,9 @@ if __name__ == "__main__":
         # assert mask_main.dtype == "uint8"
 
         # 가장 가까운 차량 마스크를 사용할 point 위치 지정
-        POINT_INTEREST = (int(im.shape[1] / 2), int(im.shape[0] / 2))  # (x, y) -> (width, height)
-        
+        # POINT_INTEREST = (int(im.shape[1] / 2), int(im.shape[0] / 2))  # (x, y) -> (width, height)
+        POINT_INTEREST = (1300, 700)  # D3
+
         # 각 클래스의 attritube
         MAX_DISTANCE = 1000000
         distances = [MAX_DISTANCE for _ in range(len(masks))]  # 지정 포인트와 각 물체 중심 간의 거리
@@ -415,12 +422,16 @@ if __name__ == "__main__":
         # print('bbox center: (', ccen, rcen, ')')  # bbox 중심 좌표 출력
 
 
-        rate = 0.6  # rate를 설정하거나 origin으로 설정할 때에는 아래 코드 주석 바꾸기
+        # rate 설정
+        if args.rate is not None:
+            rate = args.rate  # rate를 설정하거나 origin으로 설정할 때에는 아래 코드 주석 바꾸기
+            rad = max_ax * rate
+        else:  # rate를 따로 설정하지 않으면 기존 코드 방식대로 계산
+            rate = 'origin'
+            rad = max(min_ax * args.scale, max_ax * args.major_scale) * 0.5  # 타원의 긴 축, 짧은 축을 통해 이미지 반지름 크기 계산
 
         # 물체 중심을 기준으로 잘라내기
         ccen, rcen = map(int, map(round, cen_pt))  # 타원의 중심점의 좌표를 정수로 변환
-        # rad = max(min_ax * args.scale, max_ax * args.major_scale) * 0.5  # 타원의 긴 축, 짧은 축을 통해 이미지 반지름 크기 계산
-        rad = max_ax * rate
         rad = int(ceil(rad))  # 반지름을 올림해서 정수로 변환
         rect_main = [ccen - rad, rcen - rad, 2 * rad, 2 * rad]  # 이미지를 잘라낼 영역의 좌표 계산
 
@@ -449,7 +460,10 @@ if __name__ == "__main__":
         #                             img_no_ext + ".jpg")
         # out_mask_path = os.path.join(INPUT_DIR,
         #                               img_no_ext + "_mask.png")
-        out_masked_path = os.path.join(OUTPUT_DIR, f'{rate}_{img_no_ext}_normalize.png')
+        if isinstance(rate, float):
+            out_masked_path = os.path.join(OUTPUT_DIR, f'{rate:.2f}_{img_no_ext}_normalize.png')
+        else:
+            out_masked_path = os.path.join(OUTPUT_DIR, f'{rate}_{img_no_ext}_normalize.png')
 
         # cv2.imwrite(out_im_path, im_crop)
         # cv2.imwrite(out_mask_path, mask_crop)

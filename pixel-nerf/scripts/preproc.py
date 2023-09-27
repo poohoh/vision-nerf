@@ -249,7 +249,6 @@ if __name__ == "__main__":
         if _is_image_path(f) and not f.endswith("_normalize.png")
     ]
 
-    os.makedirs(INPUT_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     for image_path in tqdm.tqdm(input_images):
@@ -275,7 +274,7 @@ if __name__ == "__main__":
 
         # 가장 가까운 차량 마스크를 사용할 point 위치 지정
         # POINT_INTEREST = (int(im.shape[1] / 2), int(im.shape[0] / 2))  # (x, y) -> (width, height)
-        POINT_INTEREST = (1300, 700)  # D3
+        POINT_INTEREST = (1100, 700)  # D10
 
         # 각 클래스의 attritube
         MAX_DISTANCE = 1000000
@@ -286,23 +285,23 @@ if __name__ == "__main__":
         # 마스크, masked 저장
         for idx in range(len(masks)):
             mask = masks[idx]
-            cv2.imwrite(os.path.join(OUTPUT_DIR, f"{img_no_ext}_mask_{idx}.jpg"), mask)
+            # cv2.imwrite(os.path.join(OUTPUT_DIR, f"{img_no_ext}_mask_{idx}.jpg"), mask)
 
             # morphology
             se = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
             mask = cv2.erode(mask, se)
-            cv2.imwrite(os.path.join(OUTPUT_DIR, f'{img_no_ext}_erode_mask_{idx}.png'), mask)
+            # cv2.imwrite(os.path.join(OUTPUT_DIR, f'{img_no_ext}_erode_mask_{idx}.png'), mask)
             mask = cv2.dilate(mask, se)
-            cv2.imwrite(os.path.join(OUTPUT_DIR, f'{img_no_ext}_opening_mask_{idx}.png'), mask)
+            # cv2.imwrite(os.path.join(OUTPUT_DIR, f'{img_no_ext}_opening_mask_{idx}.png'), mask)
             mask = mask.reshape(mask.shape[0], mask.shape[1], 1)
 
             masks[idx] = mask
 
-            # 원본 이미지에 masking 적용한 이미지 생성 후 저장
-            mask_flt_temp = mask.astype(np.float32) / 255.0
-            masked = im.astype(np.float32) * mask_flt_temp + 255 * (1.0 - mask_flt_temp)
-            masked = masked.astype(np.uint8)
-            cv2.imwrite(os.path.join(OUTPUT_DIR, f"{img_no_ext}_masked_{idx}.jpg"), masked)
+            # # 원본 이미지에 masking 적용한 이미지 생성 후 저장
+            # mask_flt_temp = mask.astype(np.float32) / 255.0
+            # masked = im.astype(np.float32) * mask_flt_temp + 255 * (1.0 - mask_flt_temp)
+            # masked = masked.astype(np.uint8)
+            # cv2.imwrite(os.path.join(OUTPUT_DIR, f"{img_no_ext}_masked_{idx}.jpg"), masked)
 
             # 마스크에서 contour를 추출
             contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -311,9 +310,7 @@ if __name__ == "__main__":
                 continue
 
             # 가장 긴 contour 추출
-            contour_len = [len(contour) for contour in contours]
-            max_index = contour_len.index(max(contour_len))
-            longest_contour = contours[max_index]
+            longest_contour = max(contours, key=cv2.contourArea)
 
             try:
                 ellipse = cv2.fitEllipse(longest_contour)  # 찾아낸 contour에 타원을 적합시킴
@@ -328,12 +325,12 @@ if __name__ == "__main__":
                 #     cv2.drawContours(img_contour, contours[i], -1, (0, 255, 0), 3)
                 #     cv2.imwrite(os.path.join(OUTPUT_DIR, f'img_contour_{i}_mask_{idx}.png'), img_contour)
 
-                # contour와 타원 그리기
-                img_vis = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
-                cv2.drawContours(img_vis, contours, -1, (0, 255, 0), 3)
-                cv2.circle(img_vis, (int(cen_pt[0]), int(cen_pt[1])), 7, (255, 255, 255), -1)  # 중심점 그리기
-                img_vis = cv2.ellipse(img_vis, ellipse, (255, 0, 0), 2)
-                cv2.imwrite(os.path.join(OUTPUT_DIR, f'img_vis_{idx}.png'), img_vis)
+                # # contour와 타원 그리기
+                # img_vis = np.zeros((*im.shape[:2], 3), dtype=np.uint8)
+                # cv2.drawContours(img_vis, contours, -1, (0, 255, 0), 3)
+                # cv2.circle(img_vis, (int(cen_pt[0]), int(cen_pt[1])), 7, (255, 255, 255), -1)  # 중심점 그리기
+                # img_vis = cv2.ellipse(img_vis, ellipse, (255, 0, 0), 2)
+                # cv2.imwrite(os.path.join(OUTPUT_DIR, f'img_vis_{idx}.png'), img_vis)
 
                 print('ellipse center point:', cen_pt, ', min_ax:', min_ax)  # 타원 중심점 출력
 
@@ -349,19 +346,19 @@ if __name__ == "__main__":
 
         
         # 지정 포인트와 중심 거리가 가장 가까운 물체를 main mask로 지정
-        min_index = distances.index(min(distances))
-        mask_main = masks[min_index]
+        main_index = distances.index(min(distances))
+        mask_main = masks[main_index]
         assert mask_main.shape[:2] == im.shape[:2]
         assert mask_main.shape[-1] == 1
         assert mask_main.dtype == "uint8"
 
         print('distances:', distances)
 
-        print(f'main mask: masks[{min_index}]')
+        print(f'main mask: masks[{main_index}]')
 
         # 해당 마스크의 attribute 추출
-        cen_pt = cen_points[min_index]
-        min_ax, max_ax = axis[min_index]
+        cen_pt = cen_points[main_index]
+        min_ax, max_ax = axis[main_index]
 
         print(f'main mask - cen_pt: ({cen_pt[0]}, {cen_pt[1]}), min_ax: {min_ax}, max_ax: {max_ax}')
 

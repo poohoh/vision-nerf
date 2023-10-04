@@ -47,7 +47,7 @@ def config_parser():
                         help='do not reload weights from saved ckpt (not used)')
     parser.add_argument('--distributed', action='store_true', help='if use distributed training (not used)')
     parser.add_argument('--num_frames', type=int, default=20, help='how frames to render')
-    parser.add_argument("--elevation", type=float, default=30.0, help="elevation angle (negative is above)")
+    parser.add_argument("--elevation", type=float, default=0.0, help="elevation angle (negative is above)")
 
     ########## model options ##########
     ## ray sampling options
@@ -236,11 +236,13 @@ def gen_video(args):
     for d_idx in args.data_index:
         sample = dataset[d_idx]
 
+        input_img_num = os.path.basename(sample["rgb_path"]).split('_')[1]
+
         # out_folder = os.path.join(args.outdir, args.expname, f'{sample["rgb_path"][6:18]}') # 입력 이름[:12], [0:7] 값은 'input\'
         # out_folder = os.path.join(args.outdir, args.expname, re.split('_|\\\\|/', sample["rgb_path"])[1])
-        out_folder = os.path.join(args.outdir, args.expname, os.path.split(os.path.splitext(sample["rgb_path"])[0])[1][:-10])
+        out_folder = os.path.join(args.outdir, args.expname, input_img_num, os.path.split(os.path.splitext(sample["rgb_path"])[0])[1][:-10])
 
-        print(f'Rendering {dataset[d_idx]["rgb_path"][:-15]}')
+        print(f'Rendering {os.path.split(out_folder)[-1]}')
         print(f'videos will be saved to {out_folder}')
         os.makedirs(out_folder, exist_ok=True)
 
@@ -280,7 +282,9 @@ def gen_video(args):
         # Use 360 pose sequence from NeRF
         render_poses = torch.stack(
             [
-                pose_spherical(angle, args.elevation, radius)
+                pose_spherical(angle, phi, radius)
+                # pose_spherical(angle, 30.0, radius)
+                for phi in [0.0, 30.0, 60.0]
                 for angle in np.linspace(-180, 180, args.num_frames)[::-1]
             ],
             0,

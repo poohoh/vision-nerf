@@ -282,10 +282,14 @@ def gen_video(args):
         # Use 360 pose sequence from NeRF
         render_poses = torch.stack(
             [
-                pose_spherical(angle, phi, radius)
-                # pose_spherical(angle, 30.0, radius)
-                for phi in [0.0, 30.0, 60.0]
-                for angle in np.linspace(-180, 180, args.num_frames)[::-1]
+                pose_spherical(angle, 30.0 if args.num_frames == 20 else phi, radius)
+                for phi in ([30.0] if args.num_frames == 20 else [0.0, 30.0, 60.0])
+                for angle in np.linspace(-180, 180, args.num_frames if args.num_frames == 20 else args.num_frames // 3)[::-1]
+
+                # pose_spherical(angle, phi, radius)
+                # # pose_spherical(angle, 30.0, radius)
+                # for phi in [0.0, 30.0, 60.0]
+                # for angle in np.linspace(-180, 180, args.num_frames)[::-1]
             ],
             0,
         )  # (NV, 4, 4)

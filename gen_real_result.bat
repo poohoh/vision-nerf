@@ -1,0 +1,2 @@
+C:\Users\KimJunha\workspace\vision-nerf\venv\Scripts\python.exe C:\Users\KimJunha\workspace\vision-nerf\gen_real.py --config C:\Users\KimJunha\workspace\vision-nerf\configs\render_real.txt --num_frames 60
+pause

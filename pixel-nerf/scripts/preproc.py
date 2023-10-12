@@ -274,7 +274,7 @@ if __name__ == "__main__":
 
         # 가장 가까운 차량 마스크를 사용할 point 위치 지정
         # POINT_INTEREST = (int(im.shape[1] / 2), int(im.shape[0] / 2))  # (x, y) -> (width, height)
-        POINT_INTEREST = (1100, 700)  # D10
+        POINT_INTEREST = (1100, 700)  # D10 - (1100, 700)
 
         # 각 클래스의 attritube
         MAX_DISTANCE = 1000000
@@ -421,7 +421,7 @@ if __name__ == "__main__":
 
         # rate 설정
         if args.rate is not None:
-            rate = args.rate  # rate를 설정하거나 origin으로 설정할 때에는 아래 코드 주석 바꾸기
+            rate = args.rate
             rad = max_ax * rate
         else:  # rate를 따로 설정하지 않으면 기존 코드 방식대로 계산
             rate = 'origin'
@@ -439,7 +439,7 @@ if __name__ == "__main__":
         masked_crop = im_crop.astype(np.float32) * mask_flt + 255 * (1.0 - mask_flt)  # 잘라낸 이미지에 마스크를 적용
         masked_crop = masked_crop.astype(np.uint8)  # 결과 이미지 데이터 타입을 uint8로 변환
 
-        cv2.imwrite(os.path.join(OUTPUT_DIR, f'masked_crop.png'), masked_crop)
+        # cv2.imwrite(os.path.join(OUTPUT_DIR, f'masked_crop.png'), masked_crop)
 
         # im_crop = cv2.resize(im_crop, (args.size, args.size), interpolation=cv2.INTER_LINEAR)
         # mask_crop = cv2.resize(

@@ -197,16 +197,33 @@ class PointRendWrapper:
 
 
 # 이미지에서 생성되는 여러 마스크 중 가장 큰 마스크 리턴
-def get_largest_mask(im):
-    masks = pointrend.segment(im)
+def get_largest_mask(img_path):
+    img = cv2.imread(img_path)
+
+    # # resize image
+    # img = cv2.resize(img, (img.shape[1] * 3, img.shape[0] * 3), interpolation=cv2.INTER_AREA)
+    # cv2.imshow('resized_image', img)
+    # cv2.waitKey()
+    # cv2.destroyAllWindows()
+
+    masks = pointrend.segment(img)
     if len(masks) == 0:
         print("WARNING: PointRend detected no objects in image skipping")
-        return
+        return None
 
+    # show and save masks
+    # for i, mask in enumerate(masks):
+    #     # cv2.imshow('mask', mask)
+    #     # cv2.waitKey()
+    #     # cv2.destroyAllWindows()
+    #
+    #     cv2.imwrite(os.path.join(args.root_dir, f'mask_{i}.png'), mask)
+
+    # get largest mask
     max_area = 0
     largest_mask_index = 0
     for i, mask in enumerate(masks):
-        _, contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if contours:
             area = cv2.contourArea(max(contours, key=cv2.contourArea))
             if area > max_area:
@@ -215,43 +232,121 @@ def get_largest_mask(im):
 
     return masks[largest_mask_index]
 
+# 흰색 배경을 투명하게
+def make_background_trasparent(img_path):
+    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+    
+    # RGBA로 변환
+    if img.shape[2] == 3:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
+    
+    # 흰색 픽셀을 투명하게 설정
+    mask = (img[:, :, :3] == [255,255,255]).all(axis=2)
+    img[mask, 3] = 0
+
+    return img
+
+# load background
+def load_background():
+    backgrounds = glob.glob(os.path.join(args.bg_dir, "*.png"))
+    background = random.choice(backgrounds)  # random choice
+    background = cv2.imread(background)
+
+    return background
+
+# 합성 데이터의 배경을 투명하게 만든 후 임의의 배경 이미지와 합성
+def composite_with_transparent(img):
+    # make background transparent
+    foreground = make_background_trasparent(img)
+
+    # load background
+    background = load_background()
+
+    # find and draw contours of transparent image
+    contours, _ = cv2.findContours(foreground[:, :, 3], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contour_img = np.zeros((*foreground.shape[:2], 3), dtype=np.uint8)
+    cv2.drawContours(contour_img, contours, -1, (255, 255, 255), 3)
+
+    # draw longest contour
+    longest_contour = max(contours, key=cv2.contourArea)
+    long_cnt_img = np.zeros((*foreground.shape[:2], 3), dtype=np.uint8)
+    cv2.drawContours(long_cnt_img, longest_contour, -1, (255, 255, 255), 3)
+
+    # cv2.imshow('longest_contour', long_cnt_img)
+    # cv2.imshow('contours', contour_img)
+    # cv2.imshow('transparent_img', transparent_img)
+    # cv2.imshow('alpha', transparent_img[:, :, 3])
+    # cv2.imshow('background', background)
+    # cv2.waitKey()
+    # cv2.destroyAllWindows()
+
+    # composite
+    for i in range(foreground.shape[1]):
+        for j in range(foreground.shape[0]):
+            if foreground[i, j, 3] != 0:
+                background[i, j] = foreground[i, j, :3]
+
+    result = []
+    result.append(background)
+    result.append(foreground)
+    result.append(long_cnt_img)
+    result.append(contour_img)
+
+    return result
+
+def composite_with_mask(object_img_path, mask):
+    # image load
+    object_img = cv2.imread(object_img_path)
+    background_img = load_background()
+
+    # object
+    object_only = cv2.bitwise_and(object_img, object_img, mask=mask)
+
+    # background
+    inverse_mask = cv2.bitwise_not(mask)
+    background_only = cv2.bitwise_and(background_img, background_img, mask=inverse_mask)
+
+    result = []
+    result.append(cv2.add(object_only, background_only))
+    result.append(object_only)
+    result.append(background_only)
+
+    return result
+
+
 # 차량과 배경 합성
-def composite_bg(path):
-    OUTPUT_DIR = os.path.join(path, '..', 'bg_synthesis')
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-
+def composite_background(path):
     images = glob.glob(os.path.join(path, '*.png'))
-    backgrounds = glob.glob(os.path.join(BG_DIR, "*.png"))
 
-    for image in images:
-        object_im = cv2.imread(image)
-        mask = get_largest_mask(object_im)
-        if not mask:
-            continue
-        background = random.choice(backgrounds)  # 여러 배경 중에 랜덤으로 선택
+    for image in tqdm.tqdm(images):
+        img_name = os.path.splitext(os.path.basename(image))[0]
+        out_dir = os.path.join(path, '..', 'bg_synthesis', img_name)
+        os.makedirs(out_dir, exist_ok=True)
 
-        # 마스크 저장
-        img_no_ext = osp.splitext(os.path.basename(image))[0]
-        cv2.imwrite(os.path.join(OUTPUT_DIR, f'{img_no_ext}_mask.png', mask))
+        # 1) get mask from segmentation
+        mask = get_largest_mask(image)
+        if mask is not None:
+            mask_result, object_only, background_only  = composite_with_mask(image, mask)
 
-        # 마스크를 사용하여 객체 이미지에서 객체 추출
-        object_only = cv2.bitwise_and(object_im, object_im, mask=mask)
-        object_only_rgba = cv2.cvtColor(object_only, cv2.COLOR_BGR2BGRA)
+            # save mask result
+            cv2.imwrite(os.path.join(out_dir, f'{img_name}_mask_result.png'), mask_result)
+            cv2.imwrite(os.path.join(out_dir, f'{img_name}_object_only.png'), object_only)
+            cv2.imwrite(os.path.join(out_dir, f'{img_name}_background_only.png'), background_only)
+            cv2.imwrite(os.path.join(out_dir, f'{img_name}_mask.png'), mask)
 
-        # 마스크를 이용하여 투명도 채널 설정
-        object_only_rgba[:, :, 3] = mask
-        
-        # 배경 이미지에 객체 이미지 합성
-        x, y = (object_only.shape[1] // 2, object_only.shape[0] // 2)  # 차량이 배경에서 위치할 포지션
-        overlay_area = background[y:y+object_only.shape[0], x:x+object_only.shape[1]]
+        # 2) composite transparent background
+        transparent_result, foreground, long_cnt_img, contour_img = composite_with_transparent(image)
 
-        background[y:y+object_only.shape[0], x:x+object_only.shape[1]] = cv2.addWeighted(overlay_area, 1, object_only_rgba, 1, 0)
-
-        save_path = os.path.join(OUTPUT_DIR, os.path.basename(image))
-        cv2.imwrite(save_path, background)
+        # save transparent result
+        cv2.imwrite(os.path.join(out_dir, f'{img_name}_transparent_result.png'), transparent_result)
+        cv2.imwrite(os.path.join(out_dir, f'{img_name}_transparent.png'), foreground)
+        cv2.imwrite(os.path.join(out_dir, f'{img_name}_longest_contour.png'), long_cnt_img)
+        cv2.imwrite(os.path.join(out_dir, f'{img_name}_contours.png'), contour_img)
+        cv2.imwrite(os.path.join(out_dir, f'{img_name}_alpha.png'), foreground[:, :, 3])
 
 
-# 하위 디렉토리를 모두 읽어서 내부에 이미지가 있으면 합성
+
+# 하위 디렉토리를 모두 읽어서 내부에 이미지가 있으면 배경 합성
 def read_files(path):
     dirs = [ f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
 
@@ -259,58 +354,57 @@ def read_files(path):
         for dir in dirs:
             read_files(dir)
     else:
-        composite_bg(os.path.join(path))
+        composite_background(os.path.join(path))
 
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--coco_class",
+        type=int,
+        default=2,
+        help="COCO class wanted (0 = human, 2 = car, 5 = bus, 7 = truck)",
+    )
+    parser.add_argument(
+        "--size",
+        "-s",
+        type=int,
+        default=128,
+        help="output image side length (will be square)",
+    )
+    parser.add_argument(
+        "--scale",
+        "-S",
+        type=float,
+        default=4.37,
+        help="bbox scaling rel minor axis of fitted ellipse. "
+             + "Will take max radius from this and major_scale.",
+    )
+    parser.add_argument(
+        "--major_scale",
+        "-M",
+        type=float,
+        default=0.8,
+        help="bbox scaling rel major axis of fitted ellipse. "
+             + "Will take max radius from this and major_scale.",
+    )
+    parser.add_argument(
+        "--const_border",
+        action="store_true",
+        help="constant white border instead of replicate pad",
+    )
+    parser.add_argument(
+        "--rate",
+        type=float,
+        default=None,
+        help="calculate radius using this rate"
+    )
+    parser.add_argument('--root_dir', default="C:/Users/KimJunha/Desktop/test/car", type=str)
+    parser.add_argument('--bg_dir', default="C:/Users/KimJunha/Desktop/test/background", type=str)
 
+    return parser.parse_args()
 
-ROOT_DIR = "C:/Users/KimJunha/Desktop/test/car"
-BG_DIR = "C:/Users/KimJunha/Desktop/test/background"
-
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--coco_class",
-    type=int,
-    default=2,
-    help="COCO class wanted (0 = human, 2 = car, 5 = bus, 7 = truck)",
-)
-parser.add_argument(
-    "--size",
-    "-s",
-    type=int,
-    default=128,
-    help="output image side length (will be square)",
-)
-parser.add_argument(
-    "--scale",
-    "-S",
-    type=float,
-    default=4.37,
-    help="bbox scaling rel minor axis of fitted ellipse. "
-    + "Will take max radius from this and major_scale.",
-)
-parser.add_argument(
-    "--major_scale",
-    "-M",
-    type=float,
-    default=0.8,
-    help="bbox scaling rel major axis of fitted ellipse. "
-    + "Will take max radius from this and major_scale.",
-)
-parser.add_argument(
-    "--const_border",
-    action="store_true",
-    help="constant white border instead of replicate pad",
-)
-parser.add_argument(
-    "--rate",
-    type=float,
-    default=None,
-    help="calculate radius using this rate"
-)
-args = parser.parse_args()
+args = get_parser()
 
 pointrend = PointRendWrapper(args.coco_class)
 
-read_files(ROOT_DIR)
+read_files(args.root_dir)

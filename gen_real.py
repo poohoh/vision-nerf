@@ -236,7 +236,7 @@ def gen_video(args):
     for d_idx in args.data_index:
         sample = dataset[d_idx]
 
-        input_img_num = os.path.basename(sample["rgb_path"]).split('_')[1]
+        input_img_num = os.path.basename(sample["rgb_path"]).split('_')[-2]
 
         # out_folder = os.path.join(args.outdir, args.expname, f'{sample["rgb_path"][6:18]}') # 입력 이름[:12], [0:7] 값은 'input\'
         # out_folder = os.path.join(args.outdir, args.expname, re.split('_|\\\\|/', sample["rgb_path"])[1])

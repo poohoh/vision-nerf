@@ -160,7 +160,7 @@ class PointRendWrapper:
         insts = insts[mask]
 
         class_ids = insts.pred_classes.tolist()
-        print("class IDs:", class_ids)
+        # print("class IDs:", class_ids)
         
         if visualize:
             v = Visualizer(
@@ -208,7 +208,7 @@ def get_largest_mask(img_path):
 
     masks = pointrend.segment(img)
     if len(masks) == 0:
-        print("WARNING: PointRend detected no objects in image skipping")
+        # print("WARNING: PointRend detected no objects in image skipping")
         return None
 
     # show and save masks
@@ -313,15 +313,30 @@ def composite_with_mask(object_img_path, mask):
 
     return result
 
+def get_img_name(path):
+    result = path.split(os.sep) if os.sep in path else path.split('/')
+    result = result[-2].split('_')[-1]
+    return result
+
+def get_img_idx(path):
+    result = path.split(os.sep) if os.sep in path else path.split('/')
+    result = osp.splitext(result[-1])[0]
+    return result
 
 # 차량과 배경 합성
 def composite_background(path):
     images = glob.glob(os.path.join(path, '*.png'))
 
     for image in tqdm.tqdm(images):
-        img_name = os.path.splitext(os.path.basename(image))[0]
-        out_dir = os.path.join(path, '..', 'bg_synthesis', img_name)
+        car_num = get_img_name(image)
+        img_idx = get_img_idx(image)
+        out_dir = os.path.join(args.root_dir, '..', 'bg_synthesis', car_num)
+        mask_result_path = osp.join(args.root_dir, '..', 'mask_result', car_num)
+        transparent_result_path = osp.join(args.root_dir, '..', 'transparent_result', car_num)
+
         os.makedirs(out_dir, exist_ok=True)
+        os.makedirs(mask_result_path, exist_ok=True)
+        os.makedirs(transparent_result_path, exist_ok=True)
 
         # 1) get mask from segmentation
         mask = get_largest_mask(image)
@@ -329,30 +344,35 @@ def composite_background(path):
             mask_result, object_only, background_only  = composite_with_mask(image, mask)
 
             # save mask result
-            cv2.imwrite(os.path.join(out_dir, f'{img_name}_mask_result.png'), mask_result)
-            cv2.imwrite(os.path.join(out_dir, f'{img_name}_object_only.png'), object_only)
-            cv2.imwrite(os.path.join(out_dir, f'{img_name}_background_only.png'), background_only)
-            cv2.imwrite(os.path.join(out_dir, f'{img_name}_mask.png'), mask)
+            cv2.imwrite(os.path.join(out_dir, f'{car_num}_mask_result_{img_idx}.png'), mask_result)
+            cv2.imwrite(os.path.join(out_dir, f'{car_num}_object_only_{img_idx}.png'), object_only)
+            cv2.imwrite(os.path.join(out_dir, f'{car_num}_background_only_{img_idx}.png'), background_only)
+            cv2.imwrite(os.path.join(out_dir, f'{car_num}_mask_{img_idx}.png'), mask)
+
+            # save result
+            cv2.imwrite(osp.join(mask_result_path, f'{car_num}_mask_result_{img_idx}.png'), mask_result)
+
 
         # 2) composite transparent background
         transparent_result, foreground, long_cnt_img, contour_img = composite_with_transparent(image)
 
         # save transparent result
-        cv2.imwrite(os.path.join(out_dir, f'{img_name}_transparent_result.png'), transparent_result)
-        cv2.imwrite(os.path.join(out_dir, f'{img_name}_transparent.png'), foreground)
-        cv2.imwrite(os.path.join(out_dir, f'{img_name}_longest_contour.png'), long_cnt_img)
-        cv2.imwrite(os.path.join(out_dir, f'{img_name}_contours.png'), contour_img)
-        cv2.imwrite(os.path.join(out_dir, f'{img_name}_alpha.png'), foreground[:, :, 3])
+        cv2.imwrite(os.path.join(out_dir, f'{car_num}_transparent_result_{img_idx}.png'), transparent_result)
+        cv2.imwrite(os.path.join(out_dir, f'{car_num}_transparent_{img_idx}.png'), foreground)
+        cv2.imwrite(os.path.join(out_dir, f'{car_num}_longest_contour_{img_idx}.png'), long_cnt_img)
+        cv2.imwrite(os.path.join(out_dir, f'{car_num}_contours_{img_idx}.png'), contour_img)
+        cv2.imwrite(os.path.join(out_dir, f'{car_num}_alpha_{img_idx}.png'), foreground[:, :, 3])
 
-
+        # save result
+        cv2.imwrite(osp.join(transparent_result_path, f'{car_num}_transparent_result_{img_idx}.png'), transparent_result)
 
 # 하위 디렉토리를 모두 읽어서 내부에 이미지가 있으면 배경 합성
 def read_files(path):
-    dirs = [ f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+    dirs = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
 
     if dirs:
         for dir in dirs:
-            read_files(dir)
+            read_files(osp.join(path, dir))
     else:
         composite_background(os.path.join(path))
 
@@ -398,7 +418,7 @@ def get_parser():
         default=None,
         help="calculate radius using this rate"
     )
-    parser.add_argument('--root_dir', default="C:/Users/KimJunha/Desktop/test/car", type=str)
+    parser.add_argument('--root_dir', default="C:/Users/KimJunha/Desktop/test/car", type=str)  # image dir
     parser.add_argument('--bg_dir', default="C:/Users/KimJunha/Desktop/test/background", type=str)
 
     return parser.parse_args()

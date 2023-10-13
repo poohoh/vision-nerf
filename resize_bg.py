@@ -3,7 +3,7 @@ import os.path
 
 import cv2
 
-BG_DIR = "C:/Users/KimJunha/Desktop/test/background"
+BG_DIR = "C:/Users/KimJunha/Desktop/test/bg_origin"
 
 bgs = glob.glob(os.path.join(BG_DIR, '*.png'))
 for f in bgs:
@@ -13,4 +13,6 @@ for f in bgs:
         bg, (128, 128), interpolation=cv2.INTER_AREA
     )
 
-    cv2.imwrite(os.path.join(BG_DIR, f'{f}_resize.png'), resized)
+    img_name = os.path.splitext(os.path.basename(f))[0]
+
+    cv2.imwrite(os.path.join(BG_DIR, '..', 'background', f'{img_name}_resize.png'), resized)

@@ -220,17 +220,20 @@ def get_largest_mask(img_path):
     #     cv2.imwrite(os.path.join(args.root_dir, f'mask_{i}.png'), mask)
 
     # get largest mask
-    max_area = 0
-    largest_mask_index = 0
-    for i, mask in enumerate(masks):
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if contours:
-            area = cv2.contourArea(max(contours, key=cv2.contourArea))
-            if area > max_area:
-                max_area = area
-                largest_mask_index = i
+    areas = [np.sum(mask) for mask in masks]
+    mask_main = masks[np.argmax(areas)]
 
-    return masks[largest_mask_index]
+    # max_area = 0
+    # largest_mask_index = 0
+    # for i, mask in enumerate(masks):
+    #     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #     if contours:
+    #         area = cv2.contourArea(max(contours, key=cv2.contourArea))
+    #         if area > max_area:
+    #             max_area = area
+    #             largest_mask_index = i
+
+    return mask_main
 
 # 흰색 배경을 투명하게
 def make_background_trasparent(img_path):
@@ -306,12 +309,7 @@ def composite_with_mask(object_img_path, mask):
     inverse_mask = cv2.bitwise_not(mask)
     background_only = cv2.bitwise_and(background_img, background_img, mask=inverse_mask)
 
-    result = []
-    result.append(cv2.add(object_only, background_only))
-    result.append(object_only)
-    result.append(background_only)
-
-    return result
+    return cv2.add(object_only, background_only), object_only, background_only
 
 def get_img_name(path):
     result = path.split(os.sep) if os.sep in path else path.split('/')
@@ -328,6 +326,8 @@ def composite_background(path):
     images = glob.glob(os.path.join(path, '*.png'))
 
     for image in tqdm.tqdm(images):
+        print(f'processing: {image}')
+
         car_num = get_img_name(image)
         img_idx = get_img_idx(image)
         out_dir = os.path.join(args.root_dir, '..', 'bg_synthesis', car_num)
@@ -418,7 +418,7 @@ def get_parser():
         default=None,
         help="calculate radius using this rate"
     )
-    parser.add_argument('--root_dir', default="C:/Users/KimJunha/Desktop/test/car", type=str)  # image dir
+    parser.add_argument('--root_dir', default="C:/Users/KimJunha/Desktop/test/car/000001/0.85_000001", type=str)  # image dir
     parser.add_argument('--bg_dir', default="C:/Users/KimJunha/Desktop/test/background", type=str)
 
     return parser.parse_args()

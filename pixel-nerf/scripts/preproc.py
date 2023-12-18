@@ -274,7 +274,7 @@ if __name__ == "__main__":
 
         # 가장 가까운 차량 마스크를 사용할 point 위치 지정
         # POINT_INTEREST = (int(im.shape[1] / 2), int(im.shape[0] / 2))  # (x, y) -> (width, height)
-        POINT_INTEREST = (1100, 700)  # D10 - (1100, 700)
+        POINT_INTEREST = (1100, 700)  # D10-(1100, 700), D9-(900, 600), D3-(1100, 700)
 
         # 각 클래스의 attritube
         MAX_DISTANCE = 1000000

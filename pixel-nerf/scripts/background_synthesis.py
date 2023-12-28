@@ -332,11 +332,11 @@ def composite_background(path):
         img_idx = get_img_idx(image)
         out_dir = os.path.join(args.root_dir, '..', 'bg_synthesis', car_num)
         mask_result_path = osp.join(args.root_dir, '..', 'mask_result', car_num)
-        transparent_result_path = osp.join(args.root_dir, '..', 'transparent_result', car_num)
+        # transparent_result_path = osp.join(args.root_dir, '..', 'transparent_result', car_num)
 
         os.makedirs(out_dir, exist_ok=True)
         os.makedirs(mask_result_path, exist_ok=True)
-        os.makedirs(transparent_result_path, exist_ok=True)
+        # os.makedirs(transparent_result_path, exist_ok=True)
 
         # 1) get mask from segmentation
         mask = get_largest_mask(image)
@@ -354,17 +354,17 @@ def composite_background(path):
 
 
         # 2) composite transparent background
-        transparent_result, foreground, long_cnt_img, contour_img = composite_with_transparent(image)
+        # transparent_result, foreground, long_cnt_img, contour_img = composite_with_transparent(image)
 
         # save transparent result
-        cv2.imwrite(os.path.join(out_dir, f'{car_num}_transparent_result_{img_idx}.png'), transparent_result)
-        cv2.imwrite(os.path.join(out_dir, f'{car_num}_transparent_{img_idx}.png'), foreground)
-        cv2.imwrite(os.path.join(out_dir, f'{car_num}_longest_contour_{img_idx}.png'), long_cnt_img)
-        cv2.imwrite(os.path.join(out_dir, f'{car_num}_contours_{img_idx}.png'), contour_img)
-        cv2.imwrite(os.path.join(out_dir, f'{car_num}_alpha_{img_idx}.png'), foreground[:, :, 3])
+        # cv2.imwrite(os.path.join(out_dir, f'{car_num}_transparent_result_{img_idx}.png'), transparent_result)
+        # cv2.imwrite(os.path.join(out_dir, f'{car_num}_transparent_{img_idx}.png'), foreground)
+        # cv2.imwrite(os.path.join(out_dir, f'{car_num}_longest_contour_{img_idx}.png'), long_cnt_img)
+        # cv2.imwrite(os.path.join(out_dir, f'{car_num}_contours_{img_idx}.png'), contour_img)
+        # cv2.imwrite(os.path.join(out_dir, f'{car_num}_alpha_{img_idx}.png'), foreground[:, :, 3])
 
         # save result
-        cv2.imwrite(osp.join(transparent_result_path, f'{car_num}_transparent_result_{img_idx}.png'), transparent_result)
+        # cv2.imwrite(osp.join(transparent_result_path, f'{car_num}_transparent_result_{img_idx}.png'), transparent_result)
 
 # 하위 디렉토리를 모두 읽어서 내부에 이미지가 있으면 배경 합성
 def read_files(path):
